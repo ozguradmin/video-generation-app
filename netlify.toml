@@ -11,8 +11,10 @@
 [functions]
   node_bundler = "esbuild"
   included_files = ["remotion/bundle/**"]
+  directory = ".netlify/functions"
   
-[[functions]]
-  path = "/api/*"
+# Next.js API routes için timeout ayarı
+# Next.js plugin otomatik olarak functions oluşturuyor
+[functions."api/render"]
   timeout = 120
 
