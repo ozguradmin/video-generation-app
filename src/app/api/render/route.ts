@@ -151,14 +151,32 @@ export async function POST(request: Request) {
     }
 
     const script = await generateScriptWithGemini(url);
+    logProgress('Script generated successfully.');
+    
     const audioUrl = await synthesizeSpeechWithElevenLabs(script);
-    logProgress('Calling renderVideoOnServer...');
-    // Dinamik import ile render.ts dosyasını yüklüyoruz
-    const { renderVideoOnServer } = await import('../../../remotion/render');
-    const videoUrl = await renderVideoOnServer(script, audioUrl);
+    logProgress('Audio generated successfully.');
+    
+    // Video rendering'i try-catch ile sar - başarısız olursa devam et
+    let videoUrl = null;
+    try {
+      logProgress('Calling renderVideoOnServer...');
+      // Dinamik import ile render.ts dosyasını yüklüyoruz
+      const { renderVideoOnServer } = await import('../../../remotion/render');
+      videoUrl = await renderVideoOnServer(script, audioUrl);
+      logProgress('Video rendered successfully.');
+    } catch (videoError) {
+      logProgress(`WARNING: Video rendering failed: ${videoError instanceof Error ? videoError.message : String(videoError)}`);
+      logProgress('Continuing without video - script and audio are ready.');
+      // Video oluşturulamadı ama devam ediyoruz
+    }
 
-    logProgress('All steps completed. Returning video URL.');
-    return NextResponse.json({ videoUrl: videoUrl, script: script, audioUrl: audioUrl });
+    logProgress('All steps completed.');
+    return NextResponse.json({ 
+      videoUrl: videoUrl, 
+      script: script, 
+      audioUrl: audioUrl,
+      videoGenerated: videoUrl !== null
+    });
   } catch (error) {
     const errorDetails = error instanceof Error 
       ? `${error.message}\nStack: ${error.stack?.substring(0, 500)}`
