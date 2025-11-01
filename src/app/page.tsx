@@ -84,7 +84,13 @@ export default function Home() {
         throw new Error(fullError);
       }
 
-      setVideoUrl(data.videoUrl);
+      // Video varsa göster, yoksa sadece script ve audio bilgisi ver
+      if (data.videoUrl) {
+        setVideoUrl(data.videoUrl);
+      } else {
+        // Video oluşturulamadı ama script ve audio hazır
+        setError(`Video oluşturulamadı ancak script ve ses dosyası hazır. ${data.videoGenerated === false ? 'Video rendering başarısız oldu.' : ''}`);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error 
         ? err.message 
