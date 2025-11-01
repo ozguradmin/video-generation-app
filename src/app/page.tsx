@@ -62,15 +62,31 @@ export default function Home() {
         body: JSON.stringify({ url }),
       });
 
-      const data = await response.json();
+      // Response'u önce text olarak oku, sonra JSON'a çevir
+      const text = await response.text();
+      
+      if (!text) {
+        throw new Error('Sunucudan yanıt alınamadı. Lütfen log\'ları kontrol edin.');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error(`Sunucu hatası: ${text.substring(0, 200)}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Bir hata oluştu.');
+        throw new Error(data.error || data.details || 'Bir hata oluştu.');
       }
 
       setVideoUrl(data.videoUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Bilinmeyen bir hata oluştu.';
+      setError(errorMessage);
+      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
