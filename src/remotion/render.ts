@@ -44,6 +44,7 @@ export const renderVideoOnServer = async (script: string, audioUrl: string): Pro
 
     console.log('Rendering media...');
     await renderMedia({
+      serveUrl: bundleLocation,
       composition: { ...composition, durationInFrames },
       outputLocation,
       codec: 'h264',
