@@ -6,17 +6,46 @@ import * as path from 'path';
 import { promisify } from 'util';
 // renderVideoOnServer'ı dinamik olarak yüklüyoruz, böylece Next.js bundler'ı onu analiz etmeyecek
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
-const elevenlabs = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY!,
-});
+// Environment variables kontrolü
+let genAI: GoogleGenerativeAI | null = null;
+let elevenlabs: ElevenLabsClient | null = null;
+
+try {
+  if (process.env.GOOGLE_AI_API_KEY) {
+    genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
+  }
+} catch (e) {
+  console.error('Failed to initialize GoogleGenerativeAI:', e);
+}
+
+try {
+  if (process.env.ELEVENLABS_API_KEY) {
+    elevenlabs = new ElevenLabsClient({
+      apiKey: process.env.ELEVENLABS_API_KEY,
+    });
+  }
+} catch (e) {
+  console.error('Failed to initialize ElevenLabsClient:', e);
+}
+
 const writeFileAsync = promisify(fs.writeFile);
 
 // Netlify serverless functions için /tmp kullan, yoksa public/output
-const logDir = process.env.NETLIFY 
-  ? path.join('/tmp', 'output')
-  : path.join(process.cwd(), 'public', 'output');
-const logFilePath = path.join(logDir, 'process.log');
+// process.cwd() serverless'ta çalışmayabilir, o yüzden try-catch
+let logDir: string;
+let logFilePath: string;
+
+try {
+  logDir = process.env.NETLIFY || process.env.NETLIFY_DEV
+    ? path.join('/tmp', 'output')
+    : path.join(process.cwd(), 'public', 'output');
+  logFilePath = path.join(logDir, 'process.log');
+} catch (e) {
+  // Fallback - sadece /tmp kullan
+  logDir = '/tmp/output';
+  logFilePath = '/tmp/output/process.log';
+  console.error('Failed to determine log path, using /tmp:', e);
+}
 
 function logProgress(message: string) {
   const timestamp = new Date().toISOString();
@@ -36,8 +65,8 @@ function logProgress(message: string) {
 async function generateScriptWithGemini(url: string): Promise<string> {
   logProgress('Generating script with Gemini from URL...');
   try {
-    if (!process.env.GOOGLE_AI_API_KEY) {
-      throw new Error('GOOGLE_AI_API_KEY environment variable is not set');
+    if (!genAI) {
+      throw new Error('GOOGLE_AI_API_KEY environment variable is not set or Gemini initialization failed');
     }
     // MODEL GÜNCELLENDİ - Kullanıcının istediği model adı kullanılıyor.
     // Google Search tool'unu model oluştururken etkinleştiriyoruz
@@ -68,8 +97,8 @@ async function generateScriptWithGemini(url: string): Promise<string> {
 async function synthesizeSpeechWithElevenLabs(text: string): Promise<string> {
   logProgress('Synthesizing speech with ElevenLabs...');
   try {
-    if (!process.env.ELEVENLABS_API_KEY) {
-      throw new Error('ELEVENLABS_API_KEY environment variable is not set');
+    if (!elevenlabs) {
+      throw new Error('ELEVENLABS_API_KEY environment variable is not set or ElevenLabs initialization failed');
     }
     
     // Rachel sesinin voice_id'sini kullanıyoruz (bu ID'yi ElevenLabs dokümantasyonundan alabilirsiniz)
