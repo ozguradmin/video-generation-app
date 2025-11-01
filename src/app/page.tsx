@@ -77,7 +77,9 @@ export default function Home() {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || data.details || 'Bir hata oluştu.');
+        const errorMsg = data.error || data.details || 'Bir hata oluştu.';
+        const stackInfo = data.stack ? `\n\nDetaylar: ${data.stack.substring(0, 200)}` : '';
+        throw new Error(errorMsg + stackInfo);
       }
 
       setVideoUrl(data.videoUrl);

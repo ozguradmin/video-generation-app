@@ -131,10 +131,15 @@ async function synthesizeSpeechWithElevenLabs(text: string): Promise<string> {
 
 export async function POST(request: Request) {
   // Her istekte log dosyasını temizle
-  if (fs.existsSync(logFilePath)) {
-    fs.unlinkSync(logFilePath);
+  try {
+    if (fs.existsSync(logFilePath)) {
+      fs.unlinkSync(logFilePath);
+    }
+  } catch (e) {
+    console.error('Could not delete log file:', e);
   }
   logProgress('API request received.');
+  console.log('API request received - starting video generation');
 
   try {
     const { url } = await request.json();
@@ -155,8 +160,17 @@ export async function POST(request: Request) {
     logProgress('All steps completed. Returning video URL.');
     return NextResponse.json({ videoUrl: videoUrl, script: script, audioUrl: audioUrl });
   } catch (error) {
-    logProgress(`FATAL ERROR in POST handler: ${error instanceof Error ? error.message : String(error)}`);
+    const errorDetails = error instanceof Error 
+      ? `${error.message}\nStack: ${error.stack?.substring(0, 500)}`
+      : String(error);
+    logProgress(`FATAL ERROR in POST handler: ${errorDetails}`);
+    console.error('FATAL ERROR:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: 'Failed to render video', details: errorMessage }, { status: 500 });
+    const stackTrace = error instanceof Error ? error.stack : '';
+    return NextResponse.json({ 
+      error: 'Failed to render video', 
+      details: errorMessage,
+      stack: stackTrace?.substring(0, 1000) // İlk 1000 karakter
+    }, { status: 500 });
   }
 }
