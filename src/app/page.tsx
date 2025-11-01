@@ -65,21 +65,23 @@ export default function Home() {
       // Response'u önce text olarak oku, sonra JSON'a çevir
       const text = await response.text();
       
-      if (!text) {
-        throw new Error('Sunucudan yanıt alınamadı. Lütfen log\'ları kontrol edin.');
+      if (!text || text.trim() === '') {
+        throw new Error(`Sunucudan boş yanıt alındı (Status: ${response.status}). API çalışmıyor olabilir. Lütfen Netlify Function log'larını kontrol edin.`);
       }
 
       let data;
       try {
         data = JSON.parse(text);
       } catch (parseError) {
-        throw new Error(`Sunucu hatası: ${text.substring(0, 200)}`);
+        // JSON parse hatası - muhtemelen HTML error sayfası dönmüş
+        throw new Error(`Sunucu hatası (Status ${response.status}): ${text.substring(0, 500)}`);
       }
 
       if (!response.ok) {
-        const errorMsg = data.error || data.details || 'Bir hata oluştu.';
-        const stackInfo = data.stack ? `\n\nDetaylar: ${data.stack.substring(0, 200)}` : '';
-        throw new Error(errorMsg + stackInfo);
+        const errorMsg = data.error || data.details || data.message || 'Bir hata oluştu.';
+        const stackInfo = data.stack ? `\n\nStack Trace:\n${data.stack.substring(0, 500)}` : '';
+        const fullError = errorMsg + stackInfo;
+        throw new Error(fullError);
       }
 
       setVideoUrl(data.videoUrl);
