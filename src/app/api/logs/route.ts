@@ -4,7 +4,11 @@ import * as path from 'path';
 
 export async function GET() {
   try {
-    const logFilePath = path.join(process.cwd(), 'public', 'output', 'process.log');
+    // Netlify için /tmp, local için public/output
+    const logDir = process.env.NETLIFY
+      ? path.join('/tmp', 'output')
+      : path.join(process.cwd(), 'public', 'output');
+    const logFilePath = path.join(logDir, 'process.log');
     
     if (!fs.existsSync(logFilePath)) {
       return NextResponse.json({ logs: [], error: 'Log file not found' });

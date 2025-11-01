@@ -11,7 +11,9 @@ export const renderVideoOnServer = async (script: string, audioUrl: string): Pro
     // Remotion kompozisyonlarımızın giriş noktası
     const entryPoint = path.resolve(process.cwd(), 'src/remotion/index.ts');
 
-    const audioFilePath = path.join(process.cwd(), 'public', audioUrl);
+    // Netlify için /tmp, local için public
+    const baseDir = process.env.NETLIFY ? '/tmp' : path.join(process.cwd(), 'public');
+    const audioFilePath = path.join(baseDir, audioUrl);
     if (!fs.existsSync(audioFilePath)) {
       throw new Error(`Audio file not found at: ${audioFilePath}`);
     }
@@ -21,7 +23,9 @@ export const renderVideoOnServer = async (script: string, audioUrl: string): Pro
     const durationInFrames = Math.ceil(audioDurationInSeconds * fps) + 30;
     console.log(`Calculated duration: ${durationInFrames} frames.`);
 
-    const outputDir = path.join(process.cwd(), 'public', 'output');
+    const outputDir = process.env.NETLIFY 
+      ? path.join('/tmp', 'output')
+      : path.join(process.cwd(), 'public', 'output');
     const outputLocation = path.join(outputDir, 'video.mp4');
     
     if (!fs.existsSync(outputDir)) {
@@ -51,7 +55,8 @@ export const renderVideoOnServer = async (script: string, audioUrl: string): Pro
     });
 
     console.log(`Video rendered successfully at: ${outputLocation}`);
-    return '/output/video.mp4';
+    // Netlify için /tmp kullanıldığında dosya yolunu değiştir
+    return process.env.NETLIFY ? '/tmp/output/video.mp4' : '/output/video.mp4';
   } catch (error) {
     console.error('Error rendering video:', error);
     throw new Error('Failed to render the video with Remotion.');

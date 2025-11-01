@@ -8,3 +8,11 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["remotion/bundle/**"]
+  
+[[functions]]
+  path = "/api/*"
+  timeout = 120
+

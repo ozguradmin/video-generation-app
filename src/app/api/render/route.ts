@@ -12,15 +12,24 @@ const elevenlabs = new ElevenLabsClient({
 });
 const writeFileAsync = promisify(fs.writeFile);
 
-const logFilePath = path.join(process.cwd(), 'public', 'output', 'process.log');
+// Netlify serverless functions için /tmp kullan, yoksa public/output
+const logDir = process.env.NETLIFY 
+  ? path.join('/tmp', 'output')
+  : path.join(process.cwd(), 'public', 'output');
+const logFilePath = path.join(logDir, 'process.log');
 
 function logProgress(message: string) {
   const timestamp = new Date().toISOString();
-  const logDir = path.dirname(logFilePath);
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
+  const dir = path.dirname(logFilePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
-  fs.appendFileSync(logFilePath, `[${timestamp}] ${message}\n`);
+  try {
+    fs.appendFileSync(logFilePath, `[${timestamp}] ${message}\n`);
+  } catch (error) {
+    // Log yazma hatası - konsola yaz
+    console.error(`[${timestamp}] ${message}`);
+  }
 }
 
 
@@ -81,7 +90,10 @@ async function synthesizeSpeechWithElevenLabs(text: string): Promise<string> {
       }
     );
 
-    const outputDir = path.join(process.cwd(), 'public', 'output');
+    // Netlify için /tmp, local için public/output
+    const outputDir = process.env.NETLIFY
+      ? path.join('/tmp', 'output')
+      : path.join(process.cwd(), 'public', 'output');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -105,7 +117,8 @@ async function synthesizeSpeechWithElevenLabs(text: string): Promise<string> {
     await writeFileAsync(audioFilePath, buffer);
 
     logProgress(`Audio content written to file: ${audioFilePath}`);
-    return '/output/audio.mp3';
+    // Netlify için /tmp kullanıldığında dosya yolunu değiştir
+    return process.env.NETLIFY ? '/tmp/output/audio.mp3' : '/output/audio.mp3';
   } catch (error) {
     const errorDetails = error instanceof Error 
       ? `${error.message} | Stack: ${error.stack?.substring(0, 300)}`
