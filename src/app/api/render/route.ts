@@ -130,18 +130,20 @@ async function synthesizeSpeechWithElevenLabs(text: string): Promise<string> {
 
 
 export async function POST(request: Request) {
-  // Her istekte log dosyasını temizle
   try {
-    if (fs.existsSync(logFilePath)) {
-      fs.unlinkSync(logFilePath);
+    // Her istekte log dosyasını temizle
+    try {
+      if (fs.existsSync(logFilePath)) {
+        fs.unlinkSync(logFilePath);
+      }
+    } catch (e) {
+      console.error('Could not delete log file:', e);
     }
-  } catch (e) {
-    console.error('Could not delete log file:', e);
-  }
-  logProgress('API request received.');
-  console.log('API request received - starting video generation');
+    
+    logProgress('API request received.');
+    console.log('API request received - starting video generation');
 
-  try {
+    try {
     const { url } = await request.json();
     logProgress(`Received URL: ${url}`);
 
@@ -177,18 +179,30 @@ export async function POST(request: Request) {
       audioUrl: audioUrl,
       videoGenerated: videoUrl !== null
     });
-  } catch (error) {
-    const errorDetails = error instanceof Error 
-      ? `${error.message}\nStack: ${error.stack?.substring(0, 500)}`
-      : String(error);
-    logProgress(`FATAL ERROR in POST handler: ${errorDetails}`);
-    console.error('FATAL ERROR:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    const stackTrace = error instanceof Error ? error.stack : '';
+    } catch (error) {
+      const errorDetails = error instanceof Error 
+        ? `${error.message}\nStack: ${error.stack?.substring(0, 500)}`
+        : String(error);
+      logProgress(`FATAL ERROR in POST handler: ${errorDetails}`);
+      console.error('FATAL ERROR:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      const stackTrace = error instanceof Error ? error.stack : '';
+      return NextResponse.json({ 
+        error: 'Failed to render video', 
+        details: errorMessage,
+        stack: stackTrace?.substring(0, 1000) // İlk 1000 karakter
+      }, { status: 500 });
+    }
+  } catch (outerError) {
+    // En dış catch - API route'un kendisi bile crash olursa
+    console.error('CRITICAL: API route crashed:', outerError);
+    const errorMessage = outerError instanceof Error 
+      ? outerError.message 
+      : String(outerError);
     return NextResponse.json({ 
-      error: 'Failed to render video', 
+      error: 'API route crashed',
       details: errorMessage,
-      stack: stackTrace?.substring(0, 1000) // İlk 1000 karakter
+      message: 'The API endpoint encountered a critical error before processing could begin.'
     }, { status: 500 });
   }
 }
