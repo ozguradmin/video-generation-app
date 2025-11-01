@@ -1,0 +1,27 @@
+{
+  "scripts": {
+    "dev": "next dev",
+    "prebuild": "npx remotion bundle src/remotion/index.ts --out-dir remotion/bundle || echo 'Remotion bundle skipped'",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "video": "remotion studio"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.21.0",
+    "@google/generative-ai": "^0.24.1",
+    "@remotion/cli": "^4.0.370",
+    "@remotion/media-utils": "^4.0.370",
+    "@remotion/renderer": "^4.0.370",
+    "axios": "^1.13.1",
+    "cheerio": "^1.1.2",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.370"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "typescript": "5.9.3"
+  }
+}

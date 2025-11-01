@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@remotion/cli": "4.0.370",
+    "@remotion/media-utils": "^4.0.370",
+    "cheerio": "^1.1.2",
+    "elevenlabs": "^1.59.0",
+    "remotion": "4.0.370"
+  }
+}
