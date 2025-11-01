@@ -32,15 +32,14 @@ async function generateScriptWithGemini(url: string): Promise<string> {
     }
     // MODEL GÜNCELLENDİ - Kullanıcının istediği model adı kullanılıyor.
     // Google Search tool'unu model oluştururken etkinleştiriyoruz
-    // @ts-ignore - googleSearch tip tanımı SDK'da eksik ama API'de destekleniyor
+    // googleSearch tip tanımı SDK'da eksik ama API'de destekleniyor
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash-preview-09-2025",
-      // @ts-ignore
       tools: [
         {
           googleSearch: {}
-        }
-      ],
+        } as any
+      ] as any,
       systemInstruction: "Sen, verilen URL'leri analiz edip içeriklerini genç kitle için video senaryosuna dönüştüren bir yapay zeka asistanısın."
     });
 
