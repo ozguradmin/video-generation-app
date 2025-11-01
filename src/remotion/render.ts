@@ -12,8 +12,19 @@ export const renderVideoOnServer = async (script: string, audioUrl: string): Pro
     const entryPoint = path.resolve(process.cwd(), 'src/remotion/index.ts');
 
     // Netlify için /tmp, local için public
-    const baseDir = process.env.NETLIFY ? '/tmp' : path.join(process.cwd(), 'public');
-    const audioFilePath = path.join(baseDir, audioUrl);
+    // audioUrl /output/audio.mp3 veya /tmp/output/audio.mp3 formatında gelebilir
+    let audioFilePath;
+    if (audioUrl.startsWith('/tmp')) {
+      audioFilePath = audioUrl;
+    } else if (audioUrl.startsWith('/output')) {
+      audioFilePath = process.env.NETLIFY || process.env.NETLIFY_DEV
+        ? audioUrl.replace('/output', '/tmp/output')
+        : path.join(process.cwd(), 'public', audioUrl);
+    } else {
+      audioFilePath = process.env.NETLIFY || process.env.NETLIFY_DEV
+        ? path.join('/tmp', audioUrl.replace(/^\//, ''))
+        : path.join(process.cwd(), 'public', audioUrl);
+    }
     if (!fs.existsSync(audioFilePath)) {
       throw new Error(`Audio file not found at: ${audioFilePath}`);
     }
@@ -55,8 +66,19 @@ export const renderVideoOnServer = async (script: string, audioUrl: string): Pro
     });
 
     console.log(`Video rendered successfully at: ${outputLocation}`);
-    // Netlify için /tmp kullanıldığında dosya yolunu değiştir
-    return process.env.NETLIFY ? '/tmp/output/video.mp4' : '/output/video.mp4';
+    
+    // Netlify'da /tmp'deki dosyalar frontend'den erişilemez
+    // Video'yu base64 encode edip return edelim veya dosyayı okuyalım
+    if (process.env.NETLIFY || process.env.NETLIFY_DEV) {
+      // Netlify'da: Video dosyasını base64'e çevir veya başka bir storage'a yükle
+      const videoBuffer = fs.readFileSync(outputLocation);
+      const videoBase64 = videoBuffer.toString('base64');
+      // Geçici olarak base64 URL döndür - frontend'de decode edeceğiz
+      return `data:video/mp4;base64,${videoBase64}`;
+    }
+    
+    // Local development: Normal path
+    return '/output/video.mp4';
   } catch (error) {
     console.error('Error rendering video:', error);
     throw new Error('Failed to render the video with Remotion.');
